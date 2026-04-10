@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Music, VolumeX, Send, Sparkles } from 'lucide-react';
+import { Music, VolumeX, Send, Sparkles, Heart } from 'lucide-react';
 
 // --- පින්තූර ලැයිස්තුව ---
 const photos = [
@@ -142,25 +142,44 @@ const BackgroundParticles = () => (
 export default function App() {
   const [step, setStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
   
   const [wishes, setWishes] = useState<Wish[]>(initialWishes);
   const [newName, setNewName] = useState('');
   const [newMessage, setNewMessage] = useState('');
 
-  // Title Array
   const titleText = "Happy 21st Birthday!".split("");
+
+  // Music Toggle function
+  const toggleMusic = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
 
   const handleOpenCard = () => {
     if (step !== 0) return;
     setStep(1);
+    
+    // Play music automatically when the card is opened
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => console.log("Audio play prevented:", err));
+    }
     
     setTimeout(() => {
       const duration = 3000;
       const end = Date.now() + duration;
 
       const frame = () => {
-        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0, y: 0.8 }, colors: ['#d4af37', '#b76e79', '#ffffff'] });
-        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1, y: 0.8 }, colors: ['#d4af37', '#b76e79', '#ffffff'] });
+        confetti({ particleCount: 8, angle: 60, spread: 70, origin: { x: 0, y: 0.8 }, colors: ['#d4af37', '#b76e79', '#ffffff', '#ffd700'] });
+        confetti({ particleCount: 8, angle: 120, spread: 70, origin: { x: 1, y: 0.8 }, colors: ['#d4af37', '#b76e79', '#ffffff', '#ffd700'] });
         if (Date.now() < end) requestAnimationFrame(frame);
       };
       frame();
@@ -173,12 +192,7 @@ export default function App() {
     e.preventDefault();
     if (!newName.trim() || !newMessage.trim()) return;
 
-    const newWish: Wish = {
-      id: Date.now(),
-      name: newName,
-      message: newMessage
-    };
-
+    const newWish: Wish = { id: Date.now(), name: newName, message: newMessage };
     setWishes([newWish, ...wishes]);
     setNewName('');
     setNewMessage('');
@@ -189,67 +203,103 @@ export default function App() {
   return (
     <div className="min-h-screen bg-luxury-dark font-sans flex flex-col items-center justify-center relative">
       <BackgroundParticles />
+      
+      {/* Hidden Audio Element */}
+      <audio ref={audioRef} src="/music.mp3" loop />
 
+      {/* Music Toggle Button */}
       <div className="fixed top-6 right-6 z-50">
-        <button 
-          onClick={() => setIsPlaying(!isPlaying)}
-          className="p-3 bg-slate-800/80 border border-luxury-gold/50 rounded-full text-luxury-gold hover:bg-slate-700 transition-colors backdrop-blur-md shadow-lg"
+        <motion.button 
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={toggleMusic}
+          className={`p-3 border rounded-full transition-all duration-300 backdrop-blur-md shadow-[0_0_15px_rgba(212,175,55,0.3)] ${
+            isPlaying ? 'bg-luxury-gold text-slate-900 border-luxury-gold' : 'bg-slate-800/80 text-luxury-gold border-luxury-gold/50'
+          }`}
         >
           {isPlaying ? <Music size={24} /> : <VolumeX size={24} />}
-        </button>
+        </motion.button>
       </div>
 
       <AnimatePresence mode="wait">
         {step < 2 ? (
+          // --- ADVANCED LUXURY ENVELOPE / INVITATION ---
           <motion.div
             key="card-container"
-            exit={{ opacity: 0, scale: 1.5, filter: 'blur(10px)' }}
+            exit={{ opacity: 0, scale: 1.2, filter: 'blur(10px)' }}
             transition={{ duration: 1 }}
-            className="relative w-80 h-96 cursor-pointer"
-            style={{ perspective: 1500 }}
+            className="relative w-[320px] md:w-[400px] h-[450px] cursor-pointer group"
+            style={{ perspective: 2000 }}
             onClick={handleOpenCard}
           >
-            <div className="absolute inset-0 bg-slate-900 border-2 border-luxury-gold rounded-xl shadow-2xl flex flex-col items-center justify-center z-0">
-              <motion.span 
-                animate={step === 1 ? { scale: [1, 1.2, 1], opacity: [0, 1] } : { opacity: 0 }}
-                transition={{ duration: 1, delay: 0.5 }}
-                className="text-4xl text-rose-gold font-serif"
+            {/* Glowing Aura Behind Card */}
+            <div className="absolute inset-0 bg-luxury-gold/20 blur-[50px] rounded-full group-hover:bg-luxury-gold/40 transition-colors duration-700"></div>
+
+            {/* Inside Content (Visible when flaps open) */}
+            <div className="absolute inset-2 bg-gradient-to-b from-slate-900 to-black border-2 border-luxury-gold rounded-xl shadow-2xl flex flex-col items-center justify-center z-0 overflow-hidden">
+              <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+              <motion.div 
+                animate={step === 1 ? { scale: [0.8, 1.2, 1], opacity: [0, 1] } : { opacity: 0 }}
+                transition={{ duration: 1, delay: 0.8 }}
+                className="text-center z-10"
               >
-                🎉 Surprise! 🎉
-              </motion.span>
+                <Heart className="w-12 h-12 text-rose-gold mx-auto mb-4" fill="#b76e79" />
+                <h2 className="text-3xl text-luxury-gold font-serif tracking-widest uppercase">For You</h2>
+              </motion.div>
             </div>
 
+            {/* Left Flap */}
             <motion.div
               initial={{ rotateY: 0 }}
-              animate={{ rotateY: step === 1 ? -130 : 0 }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
+              animate={{ rotateY: step === 1 ? -140 : 0 }}
+              transition={{ duration: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
               style={{ transformOrigin: "left" }}
-              className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-slate-800 to-slate-700 border border-luxury-gold rounded-l-xl z-10 shadow-[5px_0_15px_rgba(0,0,0,0.5)] flex items-center justify-end pr-2"
+              className="absolute top-0 left-0 w-1/2 h-full z-10 shadow-[5px_0_20px_rgba(0,0,0,0.7)] rounded-l-xl overflow-hidden"
             >
-               <div className="w-2 h-16 bg-luxury-gold/30 rounded-full"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-slate-700 border-y border-l border-luxury-gold"></div>
+              {/* Inner Gold Pattern */}
+              <div className="absolute top-4 bottom-4 left-4 right-0 border-y border-l border-luxury-gold/30"></div>
             </motion.div>
 
+            {/* Right Flap */}
             <motion.div
               initial={{ rotateY: 0 }}
-              animate={{ rotateY: step === 1 ? 130 : 0 }}
-              transition={{ duration: 1.5, ease: "easeInOut" }}
+              animate={{ rotateY: step === 1 ? 140 : 0 }}
+              transition={{ duration: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
               style={{ transformOrigin: "right" }}
-              className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-slate-800 to-slate-700 border border-luxury-gold rounded-r-xl z-10 shadow-[-5px_0_15px_rgba(0,0,0,0.5)] flex items-center justify-start pl-2"
+              className="absolute top-0 right-0 w-1/2 h-full z-10 shadow-[-5px_0_20px_rgba(0,0,0,0.7)] rounded-r-xl overflow-hidden"
             >
-               <div className="w-2 h-16 bg-luxury-gold/30 rounded-full"></div>
+              <div className="absolute inset-0 bg-gradient-to-l from-slate-800 to-slate-700 border-y border-r border-luxury-gold"></div>
+              {/* Inner Gold Pattern */}
+              <div className="absolute top-4 bottom-4 right-4 left-0 border-y border-r border-luxury-gold/30"></div>
             </motion.div>
 
+            {/* Middle Wax Seal */}
+            <motion.div
+              animate={step === 1 ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
+            >
+              <div className="relative w-20 h-20 bg-gradient-to-br from-yellow-500 via-luxury-gold to-yellow-700 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.6)] group-hover:shadow-[0_0_30px_rgba(212,175,55,1)] transition-shadow duration-500 border-2 border-yellow-300">
+                <div className="w-16 h-16 rounded-full border border-yellow-800/30 flex items-center justify-center">
+                  <span className="font-serif text-2xl text-yellow-900 font-bold">21</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Tap to open text */}
             {step === 0 && (
               <motion.div 
                 animate={{ y: [0, -10, 0] }} 
                 transition={{ repeat: Infinity, duration: 2 }}
-                className="absolute -bottom-16 w-full text-center text-luxury-gold tracking-widest uppercase z-20 font-semibold"
+                className="absolute -bottom-16 w-full text-center text-luxury-gold tracking-[0.2em] uppercase z-20 font-bold text-sm md:text-base flex justify-center items-center gap-2"
               >
-                Tap to Open
+                <Sparkles size={16} /> Tap to Unlock <Sparkles size={16} />
               </motion.div>
             )}
           </motion.div>
         ) : (
+          // --- Main Site Section ---
           <motion.div
             key="main-site"
             initial={{ opacity: 0 }}
@@ -257,9 +307,8 @@ export default function App() {
             transition={{ duration: 1 }}
             className="w-full max-w-6xl mx-auto px-6 py-16 z-10"
           >
-            {/* --- ADVANCED ANIMATED TITLE --- */}
+            {/* Animated Title */}
             <div className="text-center mb-16 relative">
-              {/* Glow Behind Text */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -273,17 +322,8 @@ export default function App() {
                     key={index}
                     initial={{ opacity: 0, y: 60, rotateX: -90, filter: 'blur(10px)' }}
                     animate={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
-                    transition={{ 
-                      duration: 0.8, 
-                      delay: index * 0.08, 
-                      type: 'spring', 
-                      damping: 12, 
-                      stiffness: 100 
-                    }}
-                    whileHover={{ 
-                      scale: 1.2, 
-                      filter: "brightness(1.5) drop-shadow(0px 0px 15px rgba(212,175,55,0.8))" 
-                    }}
+                    transition={{ duration: 0.8, delay: index * 0.08, type: 'spring', damping: 12, stiffness: 100 }}
+                    whileHover={{ scale: 1.2, filter: "brightness(1.5) drop-shadow(0px 0px 15px rgba(212,175,55,0.8))" }}
                     className={`${char === " " ? "w-4 md:w-8" : ""} bg-gradient-to-br from-white via-luxury-gold to-rose-gold text-transparent bg-clip-text cursor-default`}
                     style={{ display: "inline-block", paddingBottom: "10px" }}
                   >
@@ -292,7 +332,6 @@ export default function App() {
                 ))}
               </h1>
 
-              {/* Royal Subtitle */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -360,7 +399,6 @@ export default function App() {
 
               <form onSubmit={handleAddWish} className="bg-slate-800/50 backdrop-blur-md p-6 md:p-8 rounded-2xl border border-luxury-gold/40 shadow-xl mb-12 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/10 rounded-bl-full pointer-events-none"></div>
-                
                 <div className="flex flex-col md:flex-row gap-4 mb-4 relative z-10">
                   <input 
                     type="text" 
