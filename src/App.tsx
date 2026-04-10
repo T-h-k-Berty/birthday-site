@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { Music, VolumeX, Send, Sparkles, Heart } from 'lucide-react';
+import { Music, VolumeX, Send, Sparkles, Heart, Calendar, Clock, Star } from 'lucide-react';
+import Tilt from 'react-parallax-tilt'; // 3D Tilt එක සඳහා
 
 // --- පින්තූර ලැයිස්තුව ---
 const photos = [
@@ -21,7 +22,64 @@ const initialWishes: Wish[] = [
   { id: 2, name: "Amma & Thaththa", message: "We are so proud of the beautiful person you have become. May all your dreams come true! 💖" }
 ];
 
-// --- Scratch Card Component ---
+// --- 1. MAGIC CURSOR TRAIL (මවුස් එක යන තැනින් විහිදෙන තරු) ---
+const CursorTrail = () => {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const updateMousePosition = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', updateMousePosition);
+    return () => window.removeEventListener('mousemove', updateMousePosition);
+  }, []);
+
+  return (
+    <motion.div
+      className="fixed top-0 left-0 w-8 h-8 border-2 border-luxury-gold rounded-full pointer-events-none z-[9999] hidden md:flex items-center justify-center shadow-[0_0_15px_#d4af37]"
+      animate={{ x: mousePosition.x - 16, y: mousePosition.y - 16 }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.5 }}
+    >
+      <div className="w-1 h-1 bg-luxury-gold rounded-full shadow-[0_0_10px_#d4af37]"></div>
+    </motion.div>
+  );
+};
+
+// --- 2. LIFE IN NUMBERS (ඉලක්කම් වලින් ජීවිතය) ---
+const LifeInNumbers = () => {
+  const stats = [
+    { label: "Days of Magic", value: "7,670+", icon: <Calendar size={28} className="text-luxury-gold" /> },
+    { label: "Hours of Joy", value: "184,080+", icon: <Clock size={28} className="text-luxury-gold" /> },
+    { label: "Heart of Gold", value: "1", icon: <Heart size={28} className="text-luxury-gold" fill="#d4af37" /> }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 my-24 w-full max-w-4xl mx-auto">
+      {stats.map((stat, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.2, duration: 0.8 }}
+          className="bg-slate-800/40 backdrop-blur-md p-8 rounded-3xl border border-luxury-gold/30 text-center group hover:bg-slate-800/70 transition-all duration-500 shadow-xl hover:shadow-[0_0_25px_rgba(212,175,55,0.2)]"
+        >
+          <div className="flex justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+            {stat.icon}
+          </div>
+          <div className="text-4xl font-bold text-white mb-2 font-serif tracking-wider">
+            {stat.value}
+          </div>
+          <div className="text-luxury-gold uppercase text-xs tracking-[0.2em] font-semibold">
+            {stat.label}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
+// --- 3. ADVANCED SCRATCH CARD (දියුණු කළ Scratch Card එක) ---
 const ScratchCard = ({ text }: { text: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isScratched, setIsScratched] = useState(false);
@@ -35,17 +93,23 @@ const ScratchCard = ({ text }: { text: string }) => {
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
 
+    // Premium Gold Gradient for cover
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, '#d4af37');
-    gradient.addColorStop(1, '#8b6508');
+    gradient.addColorStop(0, '#d4af37'); // Luxury Gold
+    gradient.addColorStop(0.5, '#f5d76e'); // Light Gold
+    gradient.addColorStop(1, '#8b6508'); // Dark Gold
+    
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Text on Cover
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px serif';
+    ctx.font = 'bold 22px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('✨ Scratch Here to Reveal ✨', canvas.width / 2, canvas.height / 2);
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur = 4;
+    ctx.fillText('✨ Scratch to Reveal Magic ✨', canvas.width / 2, canvas.height / 2);
 
     let isDrawing = false;
 
@@ -62,7 +126,7 @@ const ScratchCard = ({ text }: { text: string }) => {
       const pos = getMousePos(e);
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 25, 0, 2 * Math.PI);
+      ctx.arc(pos.x, pos.y, 30, 0, 2 * Math.PI); // Bigger scratch brush
       ctx.fill();
       checkScratch();
     };
@@ -73,8 +137,10 @@ const ScratchCard = ({ text }: { text: string }) => {
       for (let i = 3; i < imgData.length; i += 4) {
         if (imgData[i] === 0) clearPixels++;
       }
-      if ((clearPixels / (imgData.length / 4)) > 0.4) {
+      if ((clearPixels / (imgData.length / 4)) > 0.45) { // 45% scratched reveals it
         setIsScratched(true);
+        // Small confetti when revealed
+        confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 }, colors: ['#d4af37', '#ffffff'] });
       }
     };
 
@@ -95,21 +161,23 @@ const ScratchCard = ({ text }: { text: string }) => {
   }, []);
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto h-64 md:h-72 rounded-2xl overflow-hidden shadow-2xl border-2 border-luxury-gold mt-12">
-      <div className="absolute inset-0 bg-slate-800/90 flex items-center justify-center p-8 text-center backdrop-blur-sm">
+    <div className="relative w-full max-w-2xl mx-auto h-64 md:h-72 rounded-3xl overflow-hidden shadow-2xl border border-luxury-gold/50 mt-12 group">
+      <div className="absolute inset-0 bg-slate-900 flex items-center justify-center p-10 text-center">
+        {/* Glow behind text */}
+        <div className="absolute inset-0 bg-luxury-gold/5 blur-[50px] rounded-full"></div>
         <motion.p 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: isScratched ? 1 : 0.8, opacity: isScratched ? 1 : 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-xl md:text-3xl text-luxury-gold font-serif leading-relaxed"
+          transition={{ duration: 1, type: "spring" }}
+          className="relative z-10 text-xl md:text-3xl text-luxury-gold font-serif leading-relaxed italic"
         >
-          {text}
+          "{text}"
         </motion.p>
       </div>
       <canvas
         ref={canvasRef}
         style={{ touchAction: 'none' }}
-        className={`absolute inset-0 w-full h-full cursor-crosshair transition-opacity duration-1000 ${isScratched ? 'opacity-0 pointer-events-none' : ''}`}
+        className={`absolute inset-0 w-full h-full cursor-crosshair transition-opacity duration-[1500ms] ${isScratched ? 'opacity-0 pointer-events-none' : ''}`}
       />
     </div>
   );
@@ -118,17 +186,17 @@ const ScratchCard = ({ text }: { text: string }) => {
 // --- Floating Particles Background ---
 const BackgroundParticles = () => (
   <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-    {[...Array(20)].map((_, i) => (
+    {[...Array(25)].map((_, i) => (
       <motion.div
         key={i}
-        className="absolute w-1.5 h-1.5 bg-luxury-gold rounded-full opacity-30 shadow-[0_0_8px_#d4af37]"
+        className="absolute w-1.5 h-1.5 bg-luxury-gold rounded-full opacity-30 shadow-[0_0_10px_#d4af37]"
         animate={{
           y: ['100vh', '-10vh'],
           x: [Math.random() * 100 - 50, Math.random() * 100 - 50],
-          opacity: [0, 0.6, 0]
+          opacity: [0, 0.7, 0]
         }}
         transition={{
-          duration: Math.random() * 10 + 10,
+          duration: Math.random() * 12 + 10,
           repeat: Infinity,
           ease: 'linear',
           delay: Math.random() * 10
@@ -166,7 +234,6 @@ export default function App() {
     if (step !== 0) return;
     setStep(1);
     
-    // Play music automatically when the card is opened
     if (audioRef.current) {
       audioRef.current.play().then(() => {
         setIsPlaying(true);
@@ -197,11 +264,12 @@ export default function App() {
     setNewName('');
     setNewMessage('');
     
-    confetti({ particleCount: 50, spread: 60, origin: { y: 0.9 }, colors: ['#b76e79', '#d4af37'] });
+    confetti({ particleCount: 60, spread: 70, origin: { y: 0.9 }, colors: ['#b76e79', '#d4af37'] });
   };
 
   return (
-    <div className="min-h-screen bg-luxury-dark font-sans flex flex-col items-center justify-center relative">
+    <div className="min-h-screen bg-luxury-dark font-sans flex flex-col items-center justify-center relative overflow-hidden">
+      <CursorTrail />
       <BackgroundParticles />
       
       {/* Hidden Audio Element */}
@@ -232,10 +300,8 @@ export default function App() {
             style={{ perspective: 2000 }}
             onClick={handleOpenCard}
           >
-            {/* Glowing Aura Behind Card */}
             <div className="absolute inset-0 bg-luxury-gold/20 blur-[50px] rounded-full group-hover:bg-luxury-gold/40 transition-colors duration-700"></div>
 
-            {/* Inside Content (Visible when flaps open) */}
             <div className="absolute inset-2 bg-gradient-to-b from-slate-900 to-black border-2 border-luxury-gold rounded-xl shadow-2xl flex flex-col items-center justify-center z-0 overflow-hidden">
               <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
               <motion.div 
@@ -248,7 +314,6 @@ export default function App() {
               </motion.div>
             </div>
 
-            {/* Left Flap */}
             <motion.div
               initial={{ rotateY: 0 }}
               animate={{ rotateY: step === 1 ? -140 : 0 }}
@@ -257,11 +322,9 @@ export default function App() {
               className="absolute top-0 left-0 w-1/2 h-full z-10 shadow-[5px_0_20px_rgba(0,0,0,0.7)] rounded-l-xl overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-slate-800 to-slate-700 border-y border-l border-luxury-gold"></div>
-              {/* Inner Gold Pattern */}
               <div className="absolute top-4 bottom-4 left-4 right-0 border-y border-l border-luxury-gold/30"></div>
             </motion.div>
 
-            {/* Right Flap */}
             <motion.div
               initial={{ rotateY: 0 }}
               animate={{ rotateY: step === 1 ? 140 : 0 }}
@@ -270,11 +333,9 @@ export default function App() {
               className="absolute top-0 right-0 w-1/2 h-full z-10 shadow-[-5px_0_20px_rgba(0,0,0,0.7)] rounded-r-xl overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-l from-slate-800 to-slate-700 border-y border-r border-luxury-gold"></div>
-              {/* Inner Gold Pattern */}
               <div className="absolute top-4 bottom-4 right-4 left-0 border-y border-r border-luxury-gold/30"></div>
             </motion.div>
 
-            {/* Middle Wax Seal */}
             <motion.div
               animate={step === 1 ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }}
               transition={{ duration: 0.5 }}
@@ -287,7 +348,6 @@ export default function App() {
               </div>
             </motion.div>
 
-            {/* Tap to open text */}
             {step === 0 && (
               <motion.div 
                 animate={{ y: [0, -10, 0] }} 
@@ -344,39 +404,54 @@ export default function App() {
               </motion.div>
             </div>
 
-            {/* Scratch Card */}
+            {/* Advanced Scratch Card */}
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 2.5 }}
-              className="mb-20"
+              className="mb-10"
             >
               <ScratchCard text="Happy 21st birthday! 🎉 May your days shine with joy, your dreams take flight, and your heart stay fearless. This beautiful new chapter is yours—live it boldly, laugh endlessly, and glow always 💖✨" />
             </motion.div>
 
-            {/* Photo Gallery Grid */}
+            {/* Life In Numbers Section */}
+            <LifeInNumbers />
+
+            {/* --- 4. 3D TILT PHOTO GALLERY --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[280px]">
               {photos.map((src, index) => (
-                <motion.div
+                <Tilt 
                   key={index}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={{ scale: 1.05, zIndex: 10 }}
+                  tiltMaxAngleX={15} 
+                  tiltMaxAngleY={15} 
+                  perspective={1000} 
+                  transitionSpeed={1500} 
+                  scale={1.05} 
+                  glareEnable={true} 
+                  glareMaxOpacity={0.3} 
+                  glareColor="#d4af37" 
+                  glarePosition="all"
                   className={`relative overflow-hidden rounded-2xl shadow-lg border border-luxury-gold/30 ${
                     index === 0 || index === 5 ? 'md:col-span-2 md:row-span-2' : ''
                   }`}
                 >
-                  <img 
-                    src={src} alt={`Memory ${index + 1}`} 
-                    className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
-                    onError={(e) => { (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x800/1e293b/d4af37?text=Memory+${index + 1}` }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
-                    <span className="text-luxury-gold font-serif text-lg tracking-widest border-b border-luxury-gold pb-1">Memory {index + 1}</span>
-                  </div>
-                </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    className="w-full h-full"
+                  >
+                    <img 
+                      src={src} alt={`Memory ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x800/1e293b/d4af37?text=Memory+${index + 1}` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
+                      <span className="text-luxury-gold font-serif text-lg tracking-widest border-b border-luxury-gold pb-1">Memory {index + 1}</span>
+                    </div>
+                  </motion.div>
+                </Tilt>
               ))}
             </div>
 
@@ -390,14 +465,14 @@ export default function App() {
             >
               <div className="text-center mb-10">
                 <h2 className="text-3xl md:text-5xl font-serif text-luxury-gold flex items-center justify-center gap-3">
-                  <Sparkles className="text-rose-gold" />
+                  <Star className="text-rose-gold fill-rose-gold w-6 h-6 md:w-8 md:h-8" />
                   Leave a Wish
-                  <Sparkles className="text-rose-gold" />
+                  <Star className="text-rose-gold fill-rose-gold w-6 h-6 md:w-8 md:h-8" />
                 </h2>
                 <p className="text-gray-400 mt-3">Add your message to the birthday guestbook!</p>
               </div>
 
-              <form onSubmit={handleAddWish} className="bg-slate-800/50 backdrop-blur-md p-6 md:p-8 rounded-2xl border border-luxury-gold/40 shadow-xl mb-12 relative overflow-hidden">
+              <form onSubmit={handleAddWish} className="bg-slate-800/50 backdrop-blur-md p-6 md:p-8 rounded-3xl border border-luxury-gold/40 shadow-xl mb-12 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/10 rounded-bl-full pointer-events-none"></div>
                 <div className="flex flex-col md:flex-row gap-4 mb-4 relative z-10">
                   <input 
@@ -405,7 +480,7 @@ export default function App() {
                     placeholder="Your Name" 
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="flex-1 bg-slate-900/80 text-white border border-slate-700 rounded-lg px-4 py-3 focus:outline-none focus:border-luxury-gold transition-colors shadow-inner"
+                    className="flex-1 bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-4 focus:outline-none focus:border-luxury-gold transition-colors shadow-inner"
                     required
                   />
                 </div>
@@ -414,14 +489,14 @@ export default function App() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   rows={4}
-                  className="w-full bg-slate-900/80 text-white border border-slate-700 rounded-lg px-4 py-3 mb-4 focus:outline-none focus:border-luxury-gold transition-colors resize-none shadow-inner relative z-10"
+                  className="w-full bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-4 mb-4 focus:outline-none focus:border-luxury-gold transition-colors resize-none shadow-inner relative z-10"
                   required
                 />
                 <motion.button 
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 font-bold rounded-lg flex items-center justify-center gap-2 hover:shadow-[0_0_20px_#d4af37] transition-shadow ml-auto relative z-10"
+                  className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-[0_0_25px_#d4af37] transition-shadow ml-auto relative z-10 uppercase tracking-widest text-sm"
                 >
                   <Send size={18} />
                   Send Wish
@@ -437,9 +512,9 @@ export default function App() {
                       animate={{ opacity: 1, x: 0, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-                      className="bg-slate-800/40 backdrop-blur-sm border-l-4 border-rose-gold p-6 rounded-r-2xl shadow-lg relative overflow-hidden group hover:bg-slate-800/60 transition-colors"
+                      className="bg-slate-800/40 backdrop-blur-sm border-l-4 border-rose-gold p-6 rounded-r-2xl shadow-lg relative overflow-hidden group hover:bg-slate-800/70 transition-colors"
                     >
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-rose-gold/5 rounded-bl-full pointer-events-none group-hover:bg-rose-gold/10 transition-colors"></div>
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-rose-gold/5 rounded-bl-full pointer-events-none group-hover:bg-rose-gold/15 transition-colors"></div>
                       <h3 className="text-xl font-serif text-luxury-gold mb-2">{wish.name}</h3>
                       <p className="text-gray-300 leading-relaxed italic">"{wish.message}"</p>
                     </motion.div>
@@ -448,8 +523,8 @@ export default function App() {
               </div>
             </motion.div>
 
-            <div className="mt-24 text-center text-sm text-gray-500 uppercase tracking-widest pb-10">
-              Made with ❤️ for your special day
+            <div className="mt-24 text-center text-xs md:text-sm text-gray-500 uppercase tracking-[0.3em] pb-10">
+              Created with ❤️ for a Special Soul
             </div>
           </motion.div>
         )}
