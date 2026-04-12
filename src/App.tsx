@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { Music, VolumeX, Send, Sparkles, Heart, Calendar, Clock, Star } from 'lucide-react';
-import Tilt from 'react-parallax-tilt'; // 3D Tilt එක සඳහා
+import Tilt from 'react-parallax-tilt';
 
 // --- පින්තූර ලැයිස්තුව ---
 const photos = [
@@ -22,7 +22,7 @@ const initialWishes: Wish[] = [
   { id: 2, name: "Amma & Thaththa", message: "We are so proud of the beautiful person you have become. May all your dreams come true! 💖" }
 ];
 
-// --- 1. MAGIC CURSOR TRAIL (මවුස් එක යන තැනින් විහිදෙන තරු) ---
+// --- 1. MAGIC CURSOR TRAIL ---
 const CursorTrail = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -45,7 +45,7 @@ const CursorTrail = () => {
   );
 };
 
-// --- 2. LIFE IN NUMBERS (ඉලක්කම් වලින් ජීවිතය) ---
+// --- 2. LIFE IN NUMBERS ---
 const LifeInNumbers = () => {
   const stats = [
     { label: "Days of Magic", value: "7,670+", icon: <Calendar size={28} className="text-luxury-gold" /> },
@@ -79,32 +79,37 @@ const LifeInNumbers = () => {
   );
 };
 
-// --- 3. ADVANCED SCRATCH CARD (දියුණු කළ Scratch Card එක) ---
+// --- 3. ADVANCED & RESPONSIVE SCRATCH CARD ---
 const ScratchCard = ({ text }: { text: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isScratched, setIsScratched] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    // Set actual canvas size to match container
+    canvas.width = container.offsetWidth;
+    canvas.height = container.offsetHeight;
 
-    // Premium Gold Gradient for cover
+    // Draw the gold cover
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    gradient.addColorStop(0, '#d4af37'); // Luxury Gold
-    gradient.addColorStop(0.5, '#f5d76e'); // Light Gold
-    gradient.addColorStop(1, '#8b6508'); // Dark Gold
+    gradient.addColorStop(0, '#d4af37');
+    gradient.addColorStop(0.5, '#f5d76e');
+    gradient.addColorStop(1, '#8b6508');
     
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Text on Cover
+    // Text on Cover (Responsive sizing based on width)
+    const fontSize = canvas.width < 500 ? '18px' : '24px';
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px serif';
+    ctx.font = `bold ${fontSize} serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = "rgba(0,0,0,0.5)";
@@ -112,72 +117,124 @@ const ScratchCard = ({ text }: { text: string }) => {
     ctx.fillText('✨ Scratch to Reveal Magic ✨', canvas.width / 2, canvas.height / 2);
 
     let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
 
-    const getMousePos = (e: MouseEvent | TouchEvent) => {
+    // Highly accurate coordinate calculation for both Mobile (Touch) & PC (Mouse)
+    const getMousePos = (e: any) => {
       const rect = canvas.getBoundingClientRect();
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      let clientX, clientY;
+
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if (e.changedTouches && e.changedTouches.length > 0) {
+        clientX = e.changedTouches[0].clientX;
+        clientY = e.changedTouches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
       return { x: clientX - rect.left, y: clientY - rect.top };
     };
 
-    const scratch = (e: MouseEvent | TouchEvent) => {
-      if (!isDrawing) return;
-      e.preventDefault();
+    const start = (e: any) => {
+      isDrawing = true;
       const pos = getMousePos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+      
+      // Draw an initial circle on tap
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 30, 0, 2 * Math.PI); // Bigger scratch brush
+      ctx.arc(lastX, lastY, 30, 0, Math.PI * 2);
       ctx.fill();
-      checkScratch();
+    };
+
+    const scratch = (e: any) => {
+      if (!isDrawing) return;
+      if (e.cancelable) e.preventDefault(); // Stop mobile screen scrolling
+      
+      const pos = getMousePos(e);
+
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = 60; // Thicker brush for easier scratching
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+
+      lastX = pos.x;
+      lastY = pos.y;
     };
 
     const checkScratch = () => {
       const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
       let clearPixels = 0;
-      for (let i = 3; i < imgData.length; i += 4) {
-        if (imgData[i] === 0) clearPixels++;
+      const totalPixels = canvas.width * canvas.height;
+
+      // Check pixel transparency
+      for (let i = 3; i < imgData.length; i += 16) {
+        if (imgData[i] < 128) clearPixels++;
       }
-      if ((clearPixels / (imgData.length / 4)) > 0.45) { // 45% scratched reveals it
+
+      // Reveal if more than 35% is cleared
+      if (clearPixels > (totalPixels / 4) * 0.35) { 
         setIsScratched(true);
-        // Small confetti when revealed
-        confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 }, colors: ['#d4af37', '#ffffff'] });
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 }, colors: ['#d4af37', '#ffffff'] });
       }
     };
 
-    const start = (e: MouseEvent | TouchEvent) => { isDrawing = true; scratch(e); };
-    const stop = () => { isDrawing = false; };
+    const stop = () => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      checkScratch();
+    };
 
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mousemove', scratch);
     window.addEventListener('mouseup', stop);
-    canvas.addEventListener('touchstart', start);
+    
+    canvas.addEventListener('touchstart', start, { passive: false });
     canvas.addEventListener('touchmove', scratch, { passive: false });
-    window.addEventListener('touchend', stop);
+    canvas.addEventListener('touchend', stop);
 
     return () => {
+      canvas.removeEventListener('mousedown', start);
+      canvas.removeEventListener('mousemove', scratch);
       window.removeEventListener('mouseup', stop);
-      window.removeEventListener('touchend', stop);
+      canvas.removeEventListener('touchstart', start);
+      canvas.removeEventListener('touchmove', scratch);
+      canvas.removeEventListener('touchend', stop);
     };
   }, []);
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto h-64 md:h-72 rounded-3xl overflow-hidden shadow-2xl border border-luxury-gold/50 mt-12 group">
-      <div className="absolute inset-0 bg-slate-900 flex items-center justify-center p-10 text-center">
-        {/* Glow behind text */}
+    // Dynamic height and padding for mobile responsiveness
+    <div ref={containerRef} className="relative w-full max-w-2xl mx-auto min-h-[250px] sm:min-h-[300px] flex items-center justify-center rounded-3xl overflow-hidden shadow-2xl border border-luxury-gold/50 mt-12 group">
+      
+      {/* Background and Text container */}
+      <div className="absolute inset-0 bg-slate-900 flex items-center justify-center p-6 sm:p-10 text-center">
         <div className="absolute inset-0 bg-luxury-gold/5 blur-[50px] rounded-full"></div>
         <motion.p 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: isScratched ? 1 : 0.8, opacity: isScratched ? 1 : 0 }}
           transition={{ duration: 1, type: "spring" }}
-          className="relative z-10 text-xl md:text-3xl text-luxury-gold font-serif leading-relaxed italic"
+          // Responsive Text size (text-base for mobile, larger for tabs/PC)
+          className="relative z-0 text-base sm:text-xl md:text-2xl lg:text-3xl text-luxury-gold font-serif leading-relaxed italic"
         >
           "{text}"
         </motion.p>
       </div>
+
+      {/* Canvas Layer */}
       <canvas
         ref={canvasRef}
         style={{ touchAction: 'none' }}
-        className={`absolute inset-0 w-full h-full cursor-crosshair transition-opacity duration-[1500ms] ${isScratched ? 'opacity-0 pointer-events-none' : ''}`}
+        className={`absolute inset-0 w-full h-full cursor-crosshair z-10 transition-opacity duration-[1500ms] ${isScratched ? 'opacity-0 pointer-events-none' : ''}`}
       />
     </div>
   );
@@ -218,7 +275,6 @@ export default function App() {
 
   const titleText = "Happy 21st Birthday!".split("");
 
-  // Music Toggle function
   const toggleMusic = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -272,10 +328,8 @@ export default function App() {
       <CursorTrail />
       <BackgroundParticles />
       
-      {/* Hidden Audio Element */}
       <audio ref={audioRef} src="/music.mp3" loop />
 
-      {/* Music Toggle Button */}
       <div className="fixed top-6 right-6 z-50">
         <motion.button 
           whileHover={{ scale: 1.1 }}
@@ -291,12 +345,11 @@ export default function App() {
 
       <AnimatePresence mode="wait">
         {step < 2 ? (
-          // --- ADVANCED LUXURY ENVELOPE / INVITATION ---
           <motion.div
             key="card-container"
             exit={{ opacity: 0, scale: 1.2, filter: 'blur(10px)' }}
             transition={{ duration: 1 }}
-            className="relative w-[320px] md:w-[400px] h-[450px] cursor-pointer group"
+            className="relative w-[300px] md:w-[400px] h-[400px] md:h-[450px] cursor-pointer group"
             style={{ perspective: 2000 }}
             onClick={handleOpenCard}
           >
@@ -309,8 +362,8 @@ export default function App() {
                 transition={{ duration: 1, delay: 0.8 }}
                 className="text-center z-10"
               >
-                <Heart className="w-12 h-12 text-rose-gold mx-auto mb-4" fill="#b76e79" />
-                <h2 className="text-3xl text-luxury-gold font-serif tracking-widest uppercase">For You</h2>
+                <Heart className="w-10 h-10 md:w-12 md:h-12 text-rose-gold mx-auto mb-4" fill="#b76e79" />
+                <h2 className="text-2xl md:text-3xl text-luxury-gold font-serif tracking-widest uppercase">For You</h2>
               </motion.div>
             </div>
 
@@ -341,9 +394,9 @@ export default function App() {
               transition={{ duration: 0.5 }}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
             >
-              <div className="relative w-20 h-20 bg-gradient-to-br from-yellow-500 via-luxury-gold to-yellow-700 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.6)] group-hover:shadow-[0_0_30px_rgba(212,175,55,1)] transition-shadow duration-500 border-2 border-yellow-300">
-                <div className="w-16 h-16 rounded-full border border-yellow-800/30 flex items-center justify-center">
-                  <span className="font-serif text-2xl text-yellow-900 font-bold">21</span>
+              <div className="relative w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-yellow-500 via-luxury-gold to-yellow-700 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.6)] group-hover:shadow-[0_0_30px_rgba(212,175,55,1)] transition-shadow duration-500 border-2 border-yellow-300">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border border-yellow-800/30 flex items-center justify-center">
+                  <span className="font-serif text-xl md:text-2xl text-yellow-900 font-bold">21</span>
                 </div>
               </div>
             </motion.div>
@@ -352,31 +405,29 @@ export default function App() {
               <motion.div 
                 animate={{ y: [0, -10, 0] }} 
                 transition={{ repeat: Infinity, duration: 2 }}
-                className="absolute -bottom-16 w-full text-center text-luxury-gold tracking-[0.2em] uppercase z-20 font-bold text-sm md:text-base flex justify-center items-center gap-2"
+                className="absolute -bottom-16 w-full text-center text-luxury-gold tracking-[0.2em] uppercase z-20 font-bold text-xs md:text-sm flex justify-center items-center gap-2"
               >
-                <Sparkles size={16} /> Tap to Unlock <Sparkles size={16} />
+                <Sparkles size={14} /> Tap to Unlock <Sparkles size={14} />
               </motion.div>
             )}
           </motion.div>
         ) : (
-          // --- Main Site Section ---
           <motion.div
             key="main-site"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1 }}
-            className="w-full max-w-6xl mx-auto px-6 py-16 z-10"
+            className="w-full max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16 z-10"
           >
-            {/* Animated Title */}
-            <div className="text-center mb-16 relative">
+            <div className="text-center mb-12 md:mb-16 relative">
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] md:w-[60%] h-[150%] bg-luxury-gold/20 blur-[80px] rounded-full z-0 pointer-events-none"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[60%] h-[150%] bg-luxury-gold/20 blur-[80px] rounded-full z-0 pointer-events-none"
               />
               
-              <h1 className="relative z-10 text-5xl md:text-7xl lg:text-8xl font-serif mb-2 flex flex-wrap justify-center font-bold" style={{ perspective: "1000px" }}>
+              <h1 className="relative z-10 text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-serif mb-2 flex flex-wrap justify-center font-bold leading-tight" style={{ perspective: "1000px" }}>
                 {titleText.map((char, index) => (
                   <motion.span
                     key={index}
@@ -384,7 +435,7 @@ export default function App() {
                     animate={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
                     transition={{ duration: 0.8, delay: index * 0.08, type: 'spring', damping: 12, stiffness: 100 }}
                     whileHover={{ scale: 1.2, filter: "brightness(1.5) drop-shadow(0px 0px 15px rgba(212,175,55,0.8))" }}
-                    className={`${char === " " ? "w-4 md:w-8" : ""} bg-gradient-to-br from-white via-luxury-gold to-rose-gold text-transparent bg-clip-text cursor-default`}
+                    className={`${char === " " ? "w-2 sm:w-4 md:w-8" : ""} bg-gradient-to-br from-white via-luxury-gold to-rose-gold text-transparent bg-clip-text cursor-default`}
                     style={{ display: "inline-block", paddingBottom: "10px" }}
                   >
                     {char}
@@ -396,29 +447,26 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 2, duration: 1 }}
-                className="relative z-10 flex items-center justify-center gap-3 text-luxury-gold tracking-[0.3em] uppercase text-xs md:text-sm font-semibold mt-4"
+                className="relative z-10 flex items-center justify-center gap-2 md:gap-3 text-luxury-gold tracking-[0.2em] md:tracking-[0.3em] uppercase text-[10px] sm:text-xs md:text-sm font-semibold mt-4"
               >
-                <Sparkles size={16} className="text-rose-gold" />
+                <Sparkles size={14} className="text-rose-gold hidden sm:block" />
                 <span>Welcome to your golden era</span>
-                <Sparkles size={16} className="text-rose-gold" />
+                <Sparkles size={14} className="text-rose-gold hidden sm:block" />
               </motion.div>
             </div>
 
-            {/* Advanced Scratch Card */}
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 2.5 }}
-              className="mb-10"
+              className="mb-10 w-full"
             >
               <ScratchCard text="Happy 21st birthday! 🎉 May your days shine with joy, your dreams take flight, and your heart stay fearless. This beautiful new chapter is yours—live it boldly, laugh endlessly, and glow always 💖✨" />
             </motion.div>
 
-            {/* Life In Numbers Section */}
             <LifeInNumbers />
 
-            {/* --- 4. 3D TILT PHOTO GALLERY --- */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-[280px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px] md:auto-rows-[280px]">
               {photos.map((src, index) => (
                 <Tilt 
                   key={index}
@@ -448,39 +496,38 @@ export default function App() {
                       onError={(e) => { (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x800/1e293b/d4af37?text=Memory+${index + 1}` }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
-                      <span className="text-luxury-gold font-serif text-lg tracking-widest border-b border-luxury-gold pb-1">Memory {index + 1}</span>
+                      <span className="text-luxury-gold font-serif text-sm md:text-lg tracking-widest border-b border-luxury-gold pb-1">Memory {index + 1}</span>
                     </div>
                   </motion.div>
                 </Tilt>
               ))}
             </div>
 
-            {/* Wish Form & Guestbook */}
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 1 }}
-              className="mt-32 max-w-4xl mx-auto"
+              className="mt-24 md:mt-32 max-w-4xl mx-auto"
             >
-              <div className="text-center mb-10">
-                <h2 className="text-3xl md:text-5xl font-serif text-luxury-gold flex items-center justify-center gap-3">
-                  <Star className="text-rose-gold fill-rose-gold w-6 h-6 md:w-8 md:h-8" />
+              <div className="text-center mb-8 md:mb-10">
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-serif text-luxury-gold flex items-center justify-center gap-2 md:gap-3">
+                  <Star className="text-rose-gold fill-rose-gold w-5 h-5 md:w-8 md:h-8" />
                   Leave a Wish
-                  <Star className="text-rose-gold fill-rose-gold w-6 h-6 md:w-8 md:h-8" />
+                  <Star className="text-rose-gold fill-rose-gold w-5 h-5 md:w-8 md:h-8" />
                 </h2>
-                <p className="text-gray-400 mt-3">Add your message to the birthday guestbook!</p>
+                <p className="text-gray-400 mt-2 md:mt-3 text-sm md:text-base">Add your message to the birthday guestbook!</p>
               </div>
 
-              <form onSubmit={handleAddWish} className="bg-slate-800/50 backdrop-blur-md p-6 md:p-8 rounded-3xl border border-luxury-gold/40 shadow-xl mb-12 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-luxury-gold/10 rounded-bl-full pointer-events-none"></div>
+              <form onSubmit={handleAddWish} className="bg-slate-800/50 backdrop-blur-md p-5 sm:p-6 md:p-8 rounded-3xl border border-luxury-gold/40 shadow-xl mb-12 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-luxury-gold/10 rounded-bl-full pointer-events-none"></div>
                 <div className="flex flex-col md:flex-row gap-4 mb-4 relative z-10">
                   <input 
                     type="text" 
                     placeholder="Your Name" 
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    className="flex-1 bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-4 focus:outline-none focus:border-luxury-gold transition-colors shadow-inner"
+                    className="flex-1 bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-3 md:py-4 focus:outline-none focus:border-luxury-gold transition-colors shadow-inner text-sm md:text-base"
                     required
                   />
                 </div>
@@ -489,21 +536,21 @@ export default function App() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   rows={4}
-                  className="w-full bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-4 mb-4 focus:outline-none focus:border-luxury-gold transition-colors resize-none shadow-inner relative z-10"
+                  className="w-full bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-3 md:py-4 mb-4 focus:outline-none focus:border-luxury-gold transition-colors resize-none shadow-inner relative z-10 text-sm md:text-base"
                   required
                 />
                 <motion.button 
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-[0_0_25px_#d4af37] transition-shadow ml-auto relative z-10 uppercase tracking-widest text-sm"
+                  className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-[0_0_25px_#d4af37] transition-shadow ml-auto relative z-10 uppercase tracking-widest text-xs md:text-sm"
                 >
-                  <Send size={18} />
+                  <Send size={16} className="md:w-[18px] md:h-[18px]" />
                   Send Wish
                 </motion.button>
               </form>
 
-              <div className="space-y-6">
+              <div className="space-y-4 md:space-y-6">
                 <AnimatePresence>
                   {wishes.map((wish) => (
                     <motion.div 
@@ -512,18 +559,18 @@ export default function App() {
                       animate={{ opacity: 1, x: 0, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-                      className="bg-slate-800/40 backdrop-blur-sm border-l-4 border-rose-gold p-6 rounded-r-2xl shadow-lg relative overflow-hidden group hover:bg-slate-800/70 transition-colors"
+                      className="bg-slate-800/40 backdrop-blur-sm border-l-4 border-rose-gold p-5 md:p-6 rounded-r-2xl shadow-lg relative overflow-hidden group hover:bg-slate-800/70 transition-colors"
                     >
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-rose-gold/5 rounded-bl-full pointer-events-none group-hover:bg-rose-gold/15 transition-colors"></div>
-                      <h3 className="text-xl font-serif text-luxury-gold mb-2">{wish.name}</h3>
-                      <p className="text-gray-300 leading-relaxed italic">"{wish.message}"</p>
+                      <div className="absolute top-0 right-0 w-16 h-16 md:w-24 md:h-24 bg-rose-gold/5 rounded-bl-full pointer-events-none group-hover:bg-rose-gold/15 transition-colors"></div>
+                      <h3 className="text-lg md:text-xl font-serif text-luxury-gold mb-1 md:mb-2">{wish.name}</h3>
+                      <p className="text-gray-300 leading-relaxed italic text-sm md:text-base">"{wish.message}"</p>
                     </motion.div>
                   ))}
                 </AnimatePresence>
               </div>
             </motion.div>
 
-            <div className="mt-24 text-center text-xs md:text-sm text-gray-500 uppercase tracking-[0.3em] pb-10">
+            <div className="mt-16 md:mt-24 text-center text-[10px] md:text-sm text-gray-500 uppercase tracking-[0.2em] md:tracking-[0.3em] pb-10">
               Created with ❤️ for a Special Soul
             </div>
           </motion.div>
