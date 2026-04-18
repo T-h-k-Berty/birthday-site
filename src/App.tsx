@@ -22,7 +22,7 @@ const initialWishes: Wish[] = [
   { id: 2, name: "Amma & Thaththa", message: "We are so proud of the beautiful person you have become. May all your dreams come true! 💖" }
 ];
 
-// --- 1. MAGIC CURSOR TRAIL ---
+// --- MAGIC CURSOR TRAIL ---
 const CursorTrail = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -45,7 +45,7 @@ const CursorTrail = () => {
   );
 };
 
-// --- 2. LIFE IN NUMBERS ---
+// --- LIFE IN NUMBERS ---
 const LifeInNumbers = () => {
   const stats = [
     { label: "Days of Magic", value: "7,670+", icon: <Calendar size={28} className="text-luxury-gold" /> },
@@ -79,7 +79,7 @@ const LifeInNumbers = () => {
   );
 };
 
-// --- 3. ADVANCED & RESPONSIVE SCRATCH CARD ---
+// --- ADVANCED & RESPONSIVE SCRATCH CARD ---
 const ScratchCard = ({ text }: { text: string }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -260,7 +260,18 @@ export default function App() {
   const [newName, setNewName] = useState('');
   const [newMessage, setNewMessage] = useState('');
 
-  // TItle Array - Grouped by words to prevent mid-word breaking on mobile
+  // --- TOUR GUIDE STATE ---
+  const [tourStep, setTourStep] = useState(0);
+
+  // Check LocalStorage on First Load
+  useEffect(() => {
+    const hasVisited = localStorage.getItem('nextgen_visited');
+    if (!hasVisited) {
+      setTourStep(1); // Start guide for first-timers
+      localStorage.setItem('nextgen_visited', 'true');
+    }
+  }, []);
+
   const titleWords = "Happy 21st Birthday!".split(" ");
 
   const toggleMusic = () => {
@@ -296,7 +307,11 @@ export default function App() {
       frame();
     }, 500);
 
-    setTimeout(() => setStep(2), 3500);
+    setTimeout(() => {
+      setStep(2);
+      // Advance to next tour step (Music Button) safely after site loads
+      setTourStep(prev => (prev === 1 ? 2 : prev));
+    }, 3500);
   };
 
   const handleAddWish = (e: React.FormEvent) => {
@@ -317,6 +332,59 @@ export default function App() {
       <BackgroundParticles />
       
       <audio ref={audioRef} src="/music.mp3" loop />
+
+      {/* --- TOUR GUIDE OVERLAYS --- */}
+      <AnimatePresence>
+        {/* Step 1: Envelope Guide */}
+        {tourStep === 1 && step === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+          >
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="absolute top-[65%] md:top-[70%] text-center px-4"
+            >
+              <div className="w-1 h-12 bg-gradient-to-t from-transparent to-luxury-gold mx-auto mb-4 rounded-full"></div>
+              <h3 className="text-2xl font-serif text-luxury-gold mb-2">Welcome!</h3>
+              <p className="text-gray-300 text-sm tracking-widest uppercase font-semibold">Tap the envelope to unlock</p>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Step 2: Music Guide */}
+        {tourStep === 2 && step === 2 && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px]"
+          >
+            <div className="absolute top-24 right-4 md:right-10 w-64 bg-slate-900 border border-luxury-gold rounded-2xl p-5 shadow-[0_0_30px_rgba(212,175,55,0.4)] pointer-events-auto">
+              <div className="absolute -top-3 right-5 w-4 h-4 bg-slate-900 border-t border-l border-luxury-gold transform rotate-45"></div>
+              <h4 className="text-luxury-gold font-serif text-lg mb-2">Set the Mood 🎵</h4>
+              <p className="text-gray-400 text-sm mb-4 leading-relaxed">Tap here anytime to play or pause the background music.</p>
+              <div className="flex justify-between items-center">
+                <button onClick={() => setTourStep(0)} className="text-xs text-gray-500 hover:text-white transition">Skip Tour</button>
+                <button onClick={() => setTourStep(3)} className="bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 text-xs font-bold px-4 py-2 rounded-lg shadow-lg hover:shadow-[0_0_15px_#d4af37] transition">Next</button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: Scratch Card Guide */}
+        {tourStep === 3 && step === 2 && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[2px] flex items-center justify-center px-4"
+          >
+            <div className="w-full max-w-[300px] bg-slate-900 border border-luxury-gold rounded-2xl p-6 shadow-[0_0_30px_rgba(212,175,55,0.4)] text-center mt-[-100px] pointer-events-auto">
+              <h4 className="text-luxury-gold font-serif text-lg mb-2">Hidden Magic ✨</h4>
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed">Scroll down and scratch the golden card to reveal a special hidden message!</p>
+              <button onClick={() => setTourStep(0)} className="w-full bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 text-sm font-bold px-4 py-3 rounded-lg shadow-lg hover:shadow-[0_0_15px_#d4af37] transition">Got it, Thanks!</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="fixed top-6 right-6 z-50">
         <motion.button 
@@ -573,21 +641,32 @@ export default function App() {
               </motion.div>
             </div>
 
-            {/* --- NEW ADDED FOOTER (NEXTGEN INVITES) --- */}
+            {/* --- NEXTGEN INVITES FOOTER --- */}
             <footer className="relative z-20 w-full bg-slate-900/95 backdrop-blur-md mt-10 py-12 border-t border-luxury-gold/20 text-center shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
               <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
                 
                 <img src="/logo.png" alt="NextGen Invites Logo" className="w-12 h-12 rounded-full border border-luxury-gold/50 mb-6 shadow-[0_0_15px_rgba(212,175,55,0.3)] object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}/>
                 
                 <div className="flex gap-6 mb-8">
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.675 0h-21.35C.597 0 0 .597 0 1.325v21.351C0 23.403.597 24 1.325 24h11.495v-9.294h-3.128v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.73 0 1.323-.597 1.323-1.324V1.325C24 .597 23.403 0 22.675 0z"/></svg>
+                  {/* Facebook Link & Proper Icon */}
+                  <a href="https://www.facebook.com/profile.php?id=61570786974436" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
                   </a>
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                  
+                  {/* TikTok Link & Icon */}
+                  <a href="https://www.tiktok.com/@nextgeninvites?_r=1&_t=ZS-95eB1FmYICK" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.12-3.44-3.17-3.67-5.46-.22-2.14.49-4.33 1.97-5.91 1.35-1.47 3.32-2.39 5.36-2.47v4.06c-1.2.03-2.38.64-3.09 1.63-.5.71-.7 1.6-.57 2.47.16 1.05.86 1.96 1.77 2.42 1.25.63 2.87.53 3.98-.38.64-.54 1.05-1.33 1.13-2.17.03-1.63.01-3.26.02-4.89V.02z"/>
+                    </svg>
                   </a>
-                  <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.12-3.44-3.17-3.67-5.46-.22-2.14.49-4.33 1.97-5.91 1.35-1.47 3.32-2.39 5.36-2.47v4.06c-1.2.03-2.38.64-3.09 1.63-.5.71-.7 1.6-.57 2.47.16 1.05.86 1.96 1.77 2.42 1.25.63 2.87.53 3.98-.38.64-.54 1.05-1.33 1.13-2.17.03-1.63.01-3.26.02-4.89V.02z"/></svg>
+
+                  {/* Instagram Link & Icon */}
+                  <a href="https://www.instagram.com/tharushikahasini4?utm_source=qr&igsh=dXRoZ3o5Y2N2OWsy" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
+                    </svg>
                   </a>
                 </div>
 
