@@ -93,11 +93,9 @@ const ScratchCard = ({ text }: { text: string }) => {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    // Set actual canvas size to match container
     canvas.width = container.offsetWidth;
     canvas.height = container.offsetHeight;
 
-    // Draw the gold cover
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     gradient.addColorStop(0, '#d4af37');
     gradient.addColorStop(0.5, '#f5d76e');
@@ -106,7 +104,6 @@ const ScratchCard = ({ text }: { text: string }) => {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Text on Cover (Responsive sizing based on width)
     const fontSize = canvas.width < 500 ? '18px' : '24px';
     ctx.fillStyle = '#ffffff';
     ctx.font = `bold ${fontSize} serif`;
@@ -120,7 +117,6 @@ const ScratchCard = ({ text }: { text: string }) => {
     let lastX = 0;
     let lastY = 0;
 
-    // Highly accurate coordinate calculation for both Mobile (Touch) & PC (Mouse)
     const getMousePos = (e: any) => {
       const rect = canvas.getBoundingClientRect();
       let clientX, clientY;
@@ -144,7 +140,6 @@ const ScratchCard = ({ text }: { text: string }) => {
       lastX = pos.x;
       lastY = pos.y;
       
-      // Draw an initial circle on tap
       ctx.globalCompositeOperation = 'destination-out';
       ctx.beginPath();
       ctx.arc(lastX, lastY, 30, 0, Math.PI * 2);
@@ -153,12 +148,12 @@ const ScratchCard = ({ text }: { text: string }) => {
 
     const scratch = (e: any) => {
       if (!isDrawing) return;
-      if (e.cancelable) e.preventDefault(); // Stop mobile screen scrolling
+      if (e.cancelable) e.preventDefault(); 
       
       const pos = getMousePos(e);
 
       ctx.globalCompositeOperation = 'destination-out';
-      ctx.lineWidth = 60; // Thicker brush for easier scratching
+      ctx.lineWidth = 60; 
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
@@ -176,12 +171,10 @@ const ScratchCard = ({ text }: { text: string }) => {
       let clearPixels = 0;
       const totalPixels = canvas.width * canvas.height;
 
-      // Check pixel transparency
       for (let i = 3; i < imgData.length; i += 16) {
         if (imgData[i] < 128) clearPixels++;
       }
 
-      // Reveal if more than 35% is cleared
       if (clearPixels > (totalPixels / 4) * 0.35) { 
         setIsScratched(true);
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 }, colors: ['#d4af37', '#ffffff'] });
@@ -213,24 +206,18 @@ const ScratchCard = ({ text }: { text: string }) => {
   }, []);
 
   return (
-    // Dynamic height and padding for mobile responsiveness
     <div ref={containerRef} className="relative w-full max-w-2xl mx-auto min-h-[250px] sm:min-h-[300px] flex items-center justify-center rounded-3xl overflow-hidden shadow-2xl border border-luxury-gold/50 mt-12 group">
-      
-      {/* Background and Text container */}
       <div className="absolute inset-0 bg-slate-900 flex items-center justify-center p-6 sm:p-10 text-center">
         <div className="absolute inset-0 bg-luxury-gold/5 blur-[50px] rounded-full"></div>
         <motion.p 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: isScratched ? 1 : 0.8, opacity: isScratched ? 1 : 0 }}
           transition={{ duration: 1, type: "spring" }}
-          // Responsive Text size (text-base for mobile, larger for tabs/PC)
           className="relative z-0 text-base sm:text-xl md:text-2xl lg:text-3xl text-luxury-gold font-serif leading-relaxed italic"
         >
           "{text}"
         </motion.p>
       </div>
-
-      {/* Canvas Layer */}
       <canvas
         ref={canvasRef}
         style={{ touchAction: 'none' }}
@@ -273,7 +260,8 @@ export default function App() {
   const [newName, setNewName] = useState('');
   const [newMessage, setNewMessage] = useState('');
 
-  const titleText = "Happy 21st Birthday!".split("");
+  // TItle Array - Grouped by words to prevent mid-word breaking on mobile
+  const titleWords = "Happy 21st Birthday!".split(" ");
 
   const toggleMusic = () => {
     if (audioRef.current) {
@@ -417,162 +405,199 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1 }}
-            className="w-full max-w-6xl mx-auto px-4 md:px-6 py-10 md:py-16 z-10"
+            className="w-full flex flex-col items-center"
           >
-            <div className="text-center mb-12 md:mb-16 relative">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[60%] h-[150%] bg-luxury-gold/20 blur-[80px] rounded-full z-0 pointer-events-none"
-              />
+            {/* Main Content Container */}
+            <div className="w-full max-w-6xl mx-auto px-4 md:px-6 pt-10 md:pt-16 z-10 flex-grow pb-24">
               
-              <h1 className="relative z-10 text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-serif mb-2 flex flex-wrap justify-center font-bold leading-tight" style={{ perspective: "1000px" }}>
-                {titleText.map((char, index) => (
-                  <motion.span
-                    key={index}
-                    initial={{ opacity: 0, y: 60, rotateX: -90, filter: 'blur(10px)' }}
-                    animate={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
-                    transition={{ duration: 0.8, delay: index * 0.08, type: 'spring', damping: 12, stiffness: 100 }}
-                    whileHover={{ scale: 1.2, filter: "brightness(1.5) drop-shadow(0px 0px 15px rgba(212,175,55,0.8))" }}
-                    className={`${char === " " ? "w-2 sm:w-4 md:w-8" : ""} bg-gradient-to-br from-white via-luxury-gold to-rose-gold text-transparent bg-clip-text cursor-default`}
-                    style={{ display: "inline-block", paddingBottom: "10px" }}
-                  >
-                    {char}
-                  </motion.span>
-                ))}
-              </h1>
+              {/* Fully Responsive Animated Title */}
+              <div className="text-center mb-12 md:mb-16 relative">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 2, delay: 0.5, ease: "easeOut" }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] md:w-[60%] h-[150%] bg-luxury-gold/20 blur-[80px] rounded-full z-0 pointer-events-none"
+                />
+                
+                <h1 className="relative z-10 text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-serif mb-2 flex flex-wrap justify-center font-bold leading-tight gap-x-2 sm:gap-x-4 md:gap-x-6" style={{ perspective: "1000px" }}>
+                  {titleWords.map((word, wordIndex) => {
+                    const baseIndex = titleWords.slice(0, wordIndex).join("").length;
+                    return (
+                      <span key={wordIndex} className="inline-block whitespace-nowrap">
+                        {word.split("").map((char, charIndex) => {
+                          const index = baseIndex + charIndex;
+                          return (
+                            <motion.span
+                              key={index}
+                              initial={{ opacity: 0, y: 60, rotateX: -90, filter: 'blur(10px)' }}
+                              animate={{ opacity: 1, y: 0, rotateX: 0, filter: 'blur(0px)' }}
+                              transition={{ duration: 0.8, delay: index * 0.08, type: 'spring', damping: 12, stiffness: 100 }}
+                              whileHover={{ scale: 1.2, filter: "brightness(1.5) drop-shadow(0px 0px 15px rgba(212,175,55,0.8))" }}
+                              className="bg-gradient-to-br from-white via-luxury-gold to-rose-gold text-transparent bg-clip-text cursor-default inline-block"
+                              style={{ paddingBottom: "10px" }}
+                            >
+                              {char}
+                            </motion.span>
+                          );
+                        })}
+                      </span>
+                    );
+                  })}
+                </h1>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 2, duration: 1 }}
+                  className="relative z-10 flex items-center justify-center gap-2 md:gap-3 text-luxury-gold tracking-[0.2em] md:tracking-[0.3em] uppercase text-[10px] sm:text-xs md:text-sm font-semibold mt-4"
+                >
+                  <Sparkles size={14} className="text-rose-gold hidden sm:block" />
+                  <span>Welcome to your golden era</span>
+                  <Sparkles size={14} className="text-rose-gold hidden sm:block" />
+                </motion.div>
+              </div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 2, duration: 1 }}
-                className="relative z-10 flex items-center justify-center gap-2 md:gap-3 text-luxury-gold tracking-[0.2em] md:tracking-[0.3em] uppercase text-[10px] sm:text-xs md:text-sm font-semibold mt-4"
+                transition={{ duration: 1, delay: 2.5 }}
+                className="mb-10 w-full"
               >
-                <Sparkles size={14} className="text-rose-gold hidden sm:block" />
-                <span>Welcome to your golden era</span>
-                <Sparkles size={14} className="text-rose-gold hidden sm:block" />
+                <ScratchCard text="Happy 21st birthday! 🎉 May your days shine with joy, your dreams take flight, and your heart stay fearless. This beautiful new chapter is yours—live it boldly, laugh endlessly, and glow always 💖✨" />
+              </motion.div>
+
+              <LifeInNumbers />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px] md:auto-rows-[280px]">
+                {photos.map((src, index) => (
+                  <Tilt 
+                    key={index}
+                    tiltMaxAngleX={15} 
+                    tiltMaxAngleY={15} 
+                    perspective={1000} 
+                    transitionSpeed={1500} 
+                    scale={1.05} 
+                    glareEnable={true} 
+                    glareMaxOpacity={0.3} 
+                    glareColor="#d4af37" 
+                    glarePosition="all"
+                    className={`relative overflow-hidden rounded-2xl shadow-lg border border-luxury-gold/30 ${
+                      index === 0 || index === 5 ? 'md:col-span-2 md:row-span-2' : ''
+                    }`}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                      className="w-full h-full"
+                    >
+                      <img 
+                        src={src} alt={`Memory ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x800/1e293b/d4af37?text=Memory+${index + 1}` }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
+                        <span className="text-luxury-gold font-serif text-sm md:text-lg tracking-widest border-b border-luxury-gold pb-1">Memory {index + 1}</span>
+                      </div>
+                    </motion.div>
+                  </Tilt>
+                ))}
+              </div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1 }}
+                className="mt-24 md:mt-32 max-w-4xl mx-auto"
+              >
+                <div className="text-center mb-8 md:mb-10">
+                  <h2 className="text-2xl sm:text-3xl md:text-5xl font-serif text-luxury-gold flex items-center justify-center gap-2 md:gap-3">
+                    <Star className="text-rose-gold fill-rose-gold w-5 h-5 md:w-8 md:h-8" />
+                    Leave a Wish
+                    <Star className="text-rose-gold fill-rose-gold w-5 h-5 md:w-8 md:h-8" />
+                  </h2>
+                  <p className="text-gray-400 mt-2 md:mt-3 text-sm md:text-base">Add your message to the birthday guestbook!</p>
+                </div>
+
+                <form onSubmit={handleAddWish} className="bg-slate-800/50 backdrop-blur-md p-5 sm:p-6 md:p-8 rounded-3xl border border-luxury-gold/40 shadow-xl mb-12 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-luxury-gold/10 rounded-bl-full pointer-events-none"></div>
+                  <div className="flex flex-col md:flex-row gap-4 mb-4 relative z-10">
+                    <input 
+                      type="text" 
+                      placeholder="Your Name" 
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="flex-1 bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-3 md:py-4 focus:outline-none focus:border-luxury-gold transition-colors shadow-inner text-sm md:text-base"
+                      required
+                    />
+                  </div>
+                  <textarea 
+                    placeholder="Write your beautiful birthday wish here..." 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    rows={4}
+                    className="w-full bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-3 md:py-4 mb-4 focus:outline-none focus:border-luxury-gold transition-colors resize-none shadow-inner relative z-10 text-sm md:text-base"
+                    required
+                  />
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-[0_0_25px_#d4af37] transition-shadow ml-auto relative z-10 uppercase tracking-widest text-xs md:text-sm"
+                  >
+                    <Send size={16} className="md:w-[18px] md:h-[18px]" />
+                    Send Wish
+                  </motion.button>
+                </form>
+
+                <div className="space-y-4 md:space-y-6">
+                  <AnimatePresence>
+                    {wishes.map((wish) => (
+                      <motion.div 
+                        key={wish.id}
+                        initial={{ opacity: 0, x: -50, scale: 0.9 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ type: 'spring', stiffness: 100, damping: 15 }}
+                        className="bg-slate-800/40 backdrop-blur-sm border-l-4 border-rose-gold p-5 md:p-6 rounded-r-2xl shadow-lg relative overflow-hidden group hover:bg-slate-800/70 transition-colors"
+                      >
+                        <div className="absolute top-0 right-0 w-16 h-16 md:w-24 md:h-24 bg-rose-gold/5 rounded-bl-full pointer-events-none group-hover:bg-rose-gold/15 transition-colors"></div>
+                        <h3 className="text-lg md:text-xl font-serif text-luxury-gold mb-1 md:mb-2">{wish.name}</h3>
+                        <p className="text-gray-300 leading-relaxed italic text-sm md:text-base">"{wish.message}"</p>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
               </motion.div>
             </div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 2.5 }}
-              className="mb-10 w-full"
-            >
-              <ScratchCard text="Happy 21st birthday! 🎉 May your days shine with joy, your dreams take flight, and your heart stay fearless. This beautiful new chapter is yours—live it boldly, laugh endlessly, and glow always 💖✨" />
-            </motion.div>
-
-            <LifeInNumbers />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 auto-rows-[250px] md:auto-rows-[280px]">
-              {photos.map((src, index) => (
-                <Tilt 
-                  key={index}
-                  tiltMaxAngleX={15} 
-                  tiltMaxAngleY={15} 
-                  perspective={1000} 
-                  transitionSpeed={1500} 
-                  scale={1.05} 
-                  glareEnable={true} 
-                  glareMaxOpacity={0.3} 
-                  glareColor="#d4af37" 
-                  glarePosition="all"
-                  className={`relative overflow-hidden rounded-2xl shadow-lg border border-luxury-gold/30 ${
-                    index === 0 || index === 5 ? 'md:col-span-2 md:row-span-2' : ''
-                  }`}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    className="w-full h-full"
-                  >
-                    <img 
-                      src={src} alt={`Memory ${index + 1}`} 
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x800/1e293b/d4af37?text=Memory+${index + 1}` }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-6">
-                      <span className="text-luxury-gold font-serif text-sm md:text-lg tracking-widest border-b border-luxury-gold pb-1">Memory {index + 1}</span>
-                    </div>
-                  </motion.div>
-                </Tilt>
-              ))}
-            </div>
-
-            <motion.div 
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1 }}
-              className="mt-24 md:mt-32 max-w-4xl mx-auto"
-            >
-              <div className="text-center mb-8 md:mb-10">
-                <h2 className="text-2xl sm:text-3xl md:text-5xl font-serif text-luxury-gold flex items-center justify-center gap-2 md:gap-3">
-                  <Star className="text-rose-gold fill-rose-gold w-5 h-5 md:w-8 md:h-8" />
-                  Leave a Wish
-                  <Star className="text-rose-gold fill-rose-gold w-5 h-5 md:w-8 md:h-8" />
-                </h2>
-                <p className="text-gray-400 mt-2 md:mt-3 text-sm md:text-base">Add your message to the birthday guestbook!</p>
-              </div>
-
-              <form onSubmit={handleAddWish} className="bg-slate-800/50 backdrop-blur-md p-5 sm:p-6 md:p-8 rounded-3xl border border-luxury-gold/40 shadow-xl mb-12 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-luxury-gold/10 rounded-bl-full pointer-events-none"></div>
-                <div className="flex flex-col md:flex-row gap-4 mb-4 relative z-10">
-                  <input 
-                    type="text" 
-                    placeholder="Your Name" 
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    className="flex-1 bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-3 md:py-4 focus:outline-none focus:border-luxury-gold transition-colors shadow-inner text-sm md:text-base"
-                    required
-                  />
+            {/* --- NEW ADDED FOOTER (NEXTGEN INVITES) --- */}
+            <footer className="relative z-20 w-full bg-slate-900/95 backdrop-blur-md mt-10 py-12 border-t border-luxury-gold/20 text-center shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+              <div className="max-w-7xl mx-auto px-4 flex flex-col items-center">
+                
+                <img src="/logo.png" alt="NextGen Invites Logo" className="w-12 h-12 rounded-full border border-luxury-gold/50 mb-6 shadow-[0_0_15px_rgba(212,175,55,0.3)] object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}/>
+                
+                <div className="flex gap-6 mb-8">
+                  <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.675 0h-21.35C.597 0 0 .597 0 1.325v21.351C0 23.403.597 24 1.325 24h11.495v-9.294h-3.128v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12V24h6.116c.73 0 1.323-.597 1.323-1.324V1.325C24 .597 23.403 0 22.675 0z"/></svg>
+                  </a>
+                  <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                  </a>
+                  <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-luxury-gold hover:bg-white/10 transition-all border border-white/10 hover:border-luxury-gold shadow-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)]">
+                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.12-3.44-3.17-3.67-5.46-.22-2.14.49-4.33 1.97-5.91 1.35-1.47 3.32-2.39 5.36-2.47v4.06c-1.2.03-2.38.64-3.09 1.63-.5.71-.7 1.6-.57 2.47.16 1.05.86 1.96 1.77 2.42 1.25.63 2.87.53 3.98-.38.64-.54 1.05-1.33 1.13-2.17.03-1.63.01-3.26.02-4.89V.02z"/></svg>
+                  </a>
                 </div>
-                <textarea 
-                  placeholder="Write your beautiful birthday wish here..." 
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  rows={4}
-                  className="w-full bg-slate-900/80 text-white border border-slate-700 rounded-xl px-4 py-3 md:py-4 mb-4 focus:outline-none focus:border-luxury-gold transition-colors resize-none shadow-inner relative z-10 text-sm md:text-base"
-                  required
-                />
-                <motion.button 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-luxury-gold to-yellow-600 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 hover:shadow-[0_0_25px_#d4af37] transition-shadow ml-auto relative z-10 uppercase tracking-widest text-xs md:text-sm"
-                >
-                  <Send size={16} className="md:w-[18px] md:h-[18px]" />
-                  Send Wish
-                </motion.button>
-              </form>
 
-              <div className="space-y-4 md:space-y-6">
-                <AnimatePresence>
-                  {wishes.map((wish) => (
-                    <motion.div 
-                      key={wish.id}
-                      initial={{ opacity: 0, x: -50, scale: 0.9 }}
-                      animate={{ opacity: 1, x: 0, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-                      className="bg-slate-800/40 backdrop-blur-sm border-l-4 border-rose-gold p-5 md:p-6 rounded-r-2xl shadow-lg relative overflow-hidden group hover:bg-slate-800/70 transition-colors"
-                    >
-                      <div className="absolute top-0 right-0 w-16 h-16 md:w-24 md:h-24 bg-rose-gold/5 rounded-bl-full pointer-events-none group-hover:bg-rose-gold/15 transition-colors"></div>
-                      <h3 className="text-lg md:text-xl font-serif text-luxury-gold mb-1 md:mb-2">{wish.name}</h3>
-                      <p className="text-gray-300 leading-relaxed italic text-sm md:text-base">"{wish.message}"</p>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                <h2 className="text-xl font-bold tracking-[0.2em] text-white mb-2 font-serif">NEXTGEN <span className="text-luxury-gold">INVITES</span></h2>
+                <p className="text-gray-400 text-sm font-light leading-relaxed">
+                  © {new Date().getFullYear()} NextGen Invites. All rights reserved. <br/>
+                  <span className="italic text-gray-500 mt-1 block">Digital Solutions • Events • Celebrations</span>
+                </p>
               </div>
-            </motion.div>
-
-            <div className="mt-16 md:mt-24 text-center text-[10px] md:text-sm text-gray-500 uppercase tracking-[0.2em] md:tracking-[0.3em] pb-10">
-              Created with ❤️ for a Special Soul
-            </div>
+            </footer>
           </motion.div>
         )}
       </AnimatePresence>
